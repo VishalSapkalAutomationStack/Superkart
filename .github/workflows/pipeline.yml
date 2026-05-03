@@ -1,0 +1,39 @@
+name: SuperKart ML Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-train-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Setup Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install huggingface_hub
+
+      # Step 4: Train model
+      - name: Train Model
+        run: |
+          python train.py
+
+      # Step 5: Upload model and app to Hugging Face
+      - name: Deploy to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python deploy_hf.py
