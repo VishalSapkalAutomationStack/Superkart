@@ -1,38 +1,68 @@
-import joblib
-from sklearn.ensemble import GradientBoostingRegressor
 import pandas as pd
-
-# Load data
-df = pd.read_csv("SuperKart.csv")
-
-X = df.drop("Product_Store_Sales_Total", axis=1)
-y = df["Product_Store_Sales_Total"]
+import numpy as np
+import joblib
 
 from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y)
-
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
+from sklearn.ensemble import GradientBoostingRegressor
 
-num = X.select_dtypes(include=["float64", "int64"]).columns
-cat = X.select_dtypes(include=["object"]).columns
+# -------------------------------
+# Load dataset
+# -------------------------------
+df = pd.read_csv("SuperKart.csv")
+
+TARGET = "Product_Store_Sales_Total"
+
+X = df.drop(columns=[TARGET])
+y = df[TARGET]
+
+# -------------------------------
+# Feature types
+# -------------------------------
+numeric_features = X.select_dtypes(include=[np.number]).columns.tolist()
+categorical_features = X.select_dtypes(exclude=[np.number]).columns.tolist()
+
+# -------------------------------
+# Preprocessing
+# -------------------------------
+numeric_transformer = Pipeline(steps=[
+    ("imputer", SimpleImputer(strategy="median"))
+])
+
+categorical_transformer = Pipeline(steps=[
+    ("imputer", SimpleImputer(strategy="most_frequent")),
+    ("onehot", OneHotEncoder(handle_unknown="ignore"))
+])
 
 preprocessor = ColumnTransformer([
-    ("num", SimpleImputer(strategy="median"), num),
-    ("cat", Pipeline([
-        ("imputer", SimpleImputer(strategy="most_frequent")),
-        ("onehot", OneHotEncoder(handle_unknown="ignore"))
-    ]), cat)
+    ("num", numeric_transformer, numeric_features),
+    ("cat", categorical_transformer, categorical_features)
 ])
 
+# -------------------------------
+# Model (BEST from your project)
+# -------------------------------
 model = Pipeline([
     ("preprocessor", preprocessor),
-    ("model", GradientBoostingRegressor())
+    ("model", GradientBoostingRegressor(
+        n_estimators=308,
+        learning_rate=0.14,
+        max_depth=8,
+        random_state=123
+    ))
 ])
 
-model.fit(X_train, y_train)
+# -------------------------------
+# Train model
+# -------------------------------
+model.fit(X, y)
 
+# -------------------------------
+# Save model
+# -------------------------------
 joblib.dump(model, "final_model.pkl")
-print("Model trained and saved!")
+
+print("Model trained and saved successfully!")
